@@ -28,6 +28,9 @@ $ asana tasks list -p 1210542925864934
 
 ```bash
 pip install py-asana-cli
+
+# or with uv
+uv tool install py-asana-cli
 ```
 
 ## Setup
