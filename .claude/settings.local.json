@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:developers.asana.com)",
+      "WebSearch",
+      "WebFetch(domain:packaging.python.org)",
+      "Bash(uv sync:*)",
+      "Bash(uv run asana config --help:*)",
+      "Bash(uv run mypy:*)"
+    ]
+  }
+}

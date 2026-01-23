@@ -1,5 +1,5 @@
 [project]
-name = "asana-cli"
+name = "py-asana-cli"
 version = "0.1.0"
 description = "A modern CLI for interacting with Asana"
 readme = "README.md"

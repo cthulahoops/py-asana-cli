@@ -1,17 +1,17 @@
-# asana-cli
+# py-asana-cli
 
 A modern command-line interface for Asana.
 
 ## Install
 
 ```bash
-pip install asana-cli
+pip install py-asana-cli
 ```
 
 Or with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv tool install asana-cli
+uv tool install py-asana-cli
 ```
 
 ## Authentication
