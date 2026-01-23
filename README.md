@@ -1,6 +1,28 @@
-# py-asana-cli
+<p align="center">
+  <h1 align="center">asana</h1>
+  <p align="center">A fast, modern CLI for Asana.</p>
+</p>
 
-A modern command-line interface for Asana.
+<p align="center">
+  <a href="https://pypi.org/project/py-asana-cli/"><img src="https://img.shields.io/pypi/v/py-asana-cli?color=blue" alt="PyPI"></a>
+  <a href="https://pypi.org/project/py-asana-cli/"><img src="https://img.shields.io/pypi/pyversions/py-asana-cli" alt="Python"></a>
+  <a href="https://github.com/koenvanderveen/asana-cli/blob/main/LICENSE"><img src="https://img.shields.io/github/license/koenvanderveen/asana-cli" alt="License"></a>
+</p>
+
+<br>
+
+```
+$ asana tasks list -p 1210542925864934
+
+                              Tasks
+┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━┓
+┃ GID            ┃ Name               ┃ Done ┃ Due        ┃
+┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━━━━━━━┩
+│ 12108644513... │ Launch MVP         │ ✗    │ 2024-03-15 │
+│ 12108611480... │ Write docs         │ ✓    │ 2024-03-01 │
+│ 12107908102... │ Setup CI/CD        │ ✓    │ 2024-02-28 │
+└────────────────┴────────────────────┴──────┴────────────┘
+```
 
 ## Install
 
@@ -8,62 +30,45 @@ A modern command-line interface for Asana.
 pip install py-asana-cli
 ```
 
-Or with [uv](https://docs.astral.sh/uv/):
+## Setup
+
+1. Get a token from [Asana Developer Console](https://app.asana.com/0/developer-console)
+2. Configure the CLI:
 
 ```bash
-uv tool install py-asana-cli
-```
-
-## Authentication
-
-Get a Personal Access Token from [Asana Developer Console](https://app.asana.com/0/developer-console).
-
-```bash
-# Option 1: Save to config file
 asana config set-token YOUR_TOKEN
-
-# Option 2: Environment variable
-export ASANA_TOKEN=YOUR_TOKEN
+asana workspaces select  # set default workspace
 ```
 
-## Quick Start
+## Usage
 
 ```bash
-# See your user info
-asana users me
-
-# List workspaces and set default
-asana workspaces list
-asana workspaces select
-
-# List projects
-asana projects list
-
-# List tasks in a project
-asana tasks list -p PROJECT_GID
-
-# Create a task
-asana tasks create "My task" -p PROJECT_GID
-
-# Complete a task
+# Tasks
+asana tasks list -p PROJECT_GID      # list tasks
+asana tasks create "Task name" -p PROJECT_GID
 asana tasks complete TASK_GID
+asana tasks delete TASK_GID
+
+# Projects & Sections
+asana projects list
+asana sections list -p PROJECT_GID
 
 # JSON output for scripting
-asana tasks list -p PROJECT_GID -o json
+asana tasks list -p PROJECT_GID -o json | jq '.[].name'
 ```
 
 ## Commands
 
-```
-asana config      - Manage configuration (set-token, show)
-asana workspaces  - List and select workspaces
-asana projects    - List projects, get details
-asana tasks       - Create, list, update, complete, delete tasks
-asana sections    - List sections and their tasks
-asana users       - Get user info
-```
+| Command | Description |
+|---------|-------------|
+| `asana tasks` | List, create, update, complete, delete tasks |
+| `asana projects` | List projects, get details |
+| `asana sections` | List sections and their tasks |
+| `asana workspaces` | List and select workspaces |
+| `asana users` | Get user info |
+| `asana config` | Manage configuration |
 
-Run `asana --help` or `asana <command> --help` for details.
+Run `asana <command> --help` for details.
 
 ## License
 
