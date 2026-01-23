@@ -70,6 +70,22 @@ asana tasks list -p PROJECT_GID -o json | jq '.[].name'
 
 Run `asana <command> --help` for details.
 
+## Claude Code Integration
+
+Allow Claude to manage your Asana tasks by adding this to `~/.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(asana:*)"
+    ]
+  }
+}
+```
+
+Then Claude can run asana commands without asking for permission each time.
+
 ## License
 
 MIT
