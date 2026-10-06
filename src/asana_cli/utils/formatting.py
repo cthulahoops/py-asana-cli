@@ -17,8 +17,13 @@ class OutputFormat(str, Enum):
 
 
 def print_json(data: Any) -> None:
-    """Print data as formatted JSON."""
-    console.print(json.dumps(data, indent=2, default=str))
+    """Print data as formatted JSON.
+
+    Written straight to stdout rather than through Rich: Rich wraps long lines at the
+    terminal width (80 columns on a pipe) and interprets ``[tag]`` text as markup, either
+    of which corrupts the JSON.
+    """
+    print(json.dumps(data, indent=2, default=str))
 
 
 def print_table(

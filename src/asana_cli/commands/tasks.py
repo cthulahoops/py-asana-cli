@@ -184,10 +184,10 @@ def cmd_create(
         with AsanaClient() as client:
             task = client.create_task(data)
 
-        console.print(f"[green]Created task:[/green] {task['name']} ({task['gid']})")
-
         if output == OutputFormat.JSON:
             format_output(task, output)
+        else:
+            console.print(f"[green]Created task:[/green] {task['name']} ({task['gid']})")
 
     except ConfigurationError as e:
         console.print(f"[red]Error:[/red] {e}")
@@ -326,10 +326,10 @@ def cmd_add_subtask(
         with AsanaClient() as client:
             subtask = client.create_subtask(parent_gid, data)
 
-        console.print(f"[green]Created subtask:[/green] {subtask['name']} ({subtask['gid']})")
-
         if output == OutputFormat.JSON:
             format_output(subtask, output)
+        else:
+            console.print(f"[green]Created subtask:[/green] {subtask['name']} ({subtask['gid']})")
 
     except NotFoundError:
         console.print(f"[red]Error:[/red] Parent task {parent_gid} not found.")

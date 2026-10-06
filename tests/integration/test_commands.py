@@ -229,6 +229,57 @@ class TestTaskCommands:
             assert "Moved task" in result.output
 
 
+class TestJsonOutput:
+    """JSON output must be exactly what the API returned: no wrapping, no markup."""
+
+    LONG_NAME = "A subtask name that is well over eighty characters long, " * 3
+    MARKUP_NAME = "[bold] not bold [/bold] and [red]not red[/red]"
+
+    def _subtasks_json(self, name):
+        with respx.mock(base_url="https://app.asana.com/api/1.0") as respx_mock:
+            respx_mock.get("/tasks/task1/subtasks").mock(
+                return_value=Response(
+                    200, json={"data": [{"gid": "subtask1", "name": name}], "next_page": None}
+                )
+            )
+            result = runner.invoke(app, ["tasks", "subtasks", "task1", "-o", "json"])
+        assert result.exit_code == 0
+        return json.loads(result.output)
+
+    def test_long_value_is_not_wrapped(self, env_token):
+        """A value longer than the 80-column pipe width survives unchanged."""
+        assert len(self.LONG_NAME) > 80
+        assert self._subtasks_json(self.LONG_NAME)[0]["name"] == self.LONG_NAME
+
+    def test_markup_is_not_interpreted(self, env_token):
+        """Rich markup tags in values come back literally."""
+        assert self._subtasks_json(self.MARKUP_NAME)[0]["name"] == self.MARKUP_NAME
+
+    def test_create_json_is_only_json(self, env_token):
+        """tasks create -o json prints nothing but the task JSON on stdout."""
+        with respx.mock(base_url="https://app.asana.com/api/1.0") as respx_mock:
+            respx_mock.post("/tasks").mock(
+                return_value=Response(201, json=responses.TASK_CREATED)
+            )
+            result = runner.invoke(
+                app, ["tasks", "create", "New Task", "-p", "project1", "-o", "json"]
+            )
+        assert result.exit_code == 0
+        assert json.loads(result.output) == responses.TASK_CREATED["data"]
+
+    def test_add_subtask_json_is_only_json(self, env_token):
+        """tasks add-subtask -o json prints nothing but the subtask JSON on stdout."""
+        with respx.mock(base_url="https://app.asana.com/api/1.0") as respx_mock:
+            respx_mock.post("/tasks/task1/subtasks").mock(
+                return_value=Response(201, json=responses.TASK_CREATED)
+            )
+            result = runner.invoke(
+                app, ["tasks", "add-subtask", "task1", "New Subtask", "-o", "json"]
+            )
+        assert result.exit_code == 0
+        assert json.loads(result.output) == responses.TASK_CREATED["data"]
+
+
 class TestSectionCommands:
     """Tests for section commands."""
 
