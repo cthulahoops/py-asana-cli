@@ -230,3 +230,17 @@ class AsanaClient:
     def delete_task(self, task_gid: str) -> None:
         """Delete a task."""
         self._request("DELETE", f"/tasks/{task_gid}")
+
+    # Story endpoints
+    def get_stories(
+        self, task_gid: str, opt_fields: list[str] | None = None
+    ) -> list[dict[str, Any]]:
+        """Get stories (comments and activity) on a task."""
+        return list(self._paginate(f"/tasks/{task_gid}/stories", opt_fields=opt_fields))
+
+    def create_comment(self, task_gid: str, text: str) -> dict[str, Any]:
+        """Add a comment to a task."""
+        response = self._request(
+            "POST", f"/tasks/{task_gid}/stories", json={"data": {"text": text}}
+        )
+        return response["data"]

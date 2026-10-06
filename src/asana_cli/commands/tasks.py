@@ -1,5 +1,7 @@
 """Task commands."""
 
+import sys
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -333,6 +335,90 @@ def cmd_add_subtask(
 
     except NotFoundError:
         console.print(f"[red]Error:[/red] Parent task {parent_gid} not found.")
+        raise typer.Exit(1)
+    except ConfigurationError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@app.command("comment")
+def cmd_comment(
+    task_gid: Annotated[str, typer.Argument(help="Task GID")],
+    text: Annotated[str | None, typer.Argument(help="Comment text")] = None,
+    body_file: Annotated[
+        str | None,
+        typer.Option("--body-file", "-F", help="Read comment text from a file ('-' for stdin)"),
+    ] = None,
+    output: Annotated[
+        OutputFormat, typer.Option("--output", "-o", help="Output format")
+    ] = OutputFormat.TABLE,
+) -> None:
+    """Add a comment to a task."""
+    if (text is None) == (body_file is None):
+        console.print("[red]Error:[/red] Give the comment as either TEXT or --body-file.")
+        raise typer.Exit(1)
+
+    if body_file is not None:
+        try:
+            text = sys.stdin.read() if body_file == "-" else Path(body_file).read_text()
+        except OSError as e:
+            console.print(f"[red]Error:[/red] Cannot read {body_file}: {e.strerror}")
+            raise typer.Exit(1)
+        except UnicodeDecodeError:
+            console.print(f"[red]Error:[/red] {body_file} is not valid UTF-8 text.")
+            raise typer.Exit(1)
+
+    text = (text or "").rstrip()
+    if not text:
+        console.print("[red]Error:[/red] Comment text is empty.")
+        raise typer.Exit(1)
+
+    try:
+        with AsanaClient() as client:
+            story = client.create_comment(task_gid, text)
+
+        if output == OutputFormat.JSON:
+            format_output(story, output)
+        else:
+            console.print(story["gid"], markup=False, highlight=False)
+
+    except NotFoundError:
+        console.print(f"[red]Error:[/red] Task {task_gid} not found.")
+        raise typer.Exit(1)
+    except ConfigurationError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@app.command("comments")
+def cmd_comments(
+    task_gid: Annotated[str, typer.Argument(help="Task GID")],
+    output: Annotated[
+        OutputFormat, typer.Option("--output", "-o", help="Output format")
+    ] = OutputFormat.TABLE,
+) -> None:
+    """List comments on a task."""
+    try:
+        with AsanaClient() as client:
+            stories = client.get_stories(
+                task_gid,
+                opt_fields=["gid", "resource_subtype", "created_at", "created_by.name", "text"],
+            )
+
+        comments = [s for s in stories if s.get("resource_subtype") == "comment_added"]
+
+        format_output(
+            comments,
+            output,
+            columns=[
+                ("created_by", "Author"),
+                ("created_at", "Time"),
+                ("text", "Text"),
+            ],
+            title="Comments",
+        )
+    except NotFoundError:
+        console.print(f"[red]Error:[/red] Task {task_gid} not found.")
         raise typer.Exit(1)
     except ConfigurationError as e:
         console.print(f"[red]Error:[/red] {e}")
