@@ -280,6 +280,149 @@ class TestJsonOutput:
         assert json.loads(result.output) == responses.TASK_CREATED["data"]
 
 
+class TestTaskCommentCommands:
+    """Tests for tasks comment / tasks comments."""
+
+    def _mock_post(self, respx_mock):
+        return respx_mock.post("/tasks/task1/stories").mock(
+            return_value=Response(201, json=responses.STORY_CREATED)
+        )
+
+    def test_comment_text_argument(self, env_token):
+        """Posting a comment sends the text and prints the new story gid."""
+        with respx.mock(base_url="https://app.asana.com/api/1.0") as respx_mock:
+            route = self._mock_post(respx_mock)
+
+            result = runner.invoke(app, ["tasks", "comment", "task1", "A new comment"])
+            assert result.exit_code == 0
+            assert result.output.strip() == "story1"
+            assert json.loads(route.calls.last.request.content) == {
+                "data": {"text": "A new comment"}
+            }
+
+    def test_comment_body_file(self, env_token, tmp_path):
+        """--body-file reads the comment text from a file."""
+        body = tmp_path / "body.md"
+        body.write_text("Line one\n\nLine 'two' with \"quotes\"\n")
+        with respx.mock(base_url="https://app.asana.com/api/1.0") as respx_mock:
+            route = self._mock_post(respx_mock)
+
+            result = runner.invoke(app, ["tasks", "comment", "task1", "--body-file", str(body)])
+            assert result.exit_code == 0
+            assert json.loads(route.calls.last.request.content) == {
+                "data": {"text": "Line one\n\nLine 'two' with \"quotes\""}
+            }
+
+    def test_comment_body_file_not_utf8(self, env_token, tmp_path):
+        """A body file that isn't UTF-8 is reported as an error, and nothing is posted."""
+        body = tmp_path / "body.bin"
+        body.write_bytes(b"\xff\xfe not text")
+        with respx.mock(
+            base_url="https://app.asana.com/api/1.0", assert_all_called=False
+        ) as respx_mock:
+            route = self._mock_post(respx_mock)
+
+            result = runner.invoke(app, ["tasks", "comment", "task1", "--body-file", str(body)])
+            assert result.exit_code == 1
+            assert "not valid UTF-8" in result.output
+            assert not route.called
+
+    def test_comment_body_file_stdin(self, env_token):
+        """--body-file - reads the comment text from stdin."""
+        with respx.mock(base_url="https://app.asana.com/api/1.0") as respx_mock:
+            route = self._mock_post(respx_mock)
+
+            result = runner.invoke(
+                app, ["tasks", "comment", "task1", "--body-file", "-"], input="From stdin\n"
+            )
+            assert result.exit_code == 0
+            assert json.loads(route.calls.last.request.content) == {
+                "data": {"text": "From stdin"}
+            }
+
+    def test_comment_json(self, env_token):
+        """-o json prints the created story."""
+        with respx.mock(base_url="https://app.asana.com/api/1.0") as respx_mock:
+            self._mock_post(respx_mock)
+
+            result = runner.invoke(
+                app, ["tasks", "comment", "task1", "A new comment", "-o", "json"]
+            )
+            assert result.exit_code == 0
+            assert json.loads(result.output) == responses.STORY_CREATED["data"]
+
+    @pytest.mark.parametrize(
+        "args",
+        [
+            ["tasks", "comment", "task1"],
+            ["tasks", "comment", "task1", "text", "--body-file", "-"],
+            ["tasks", "comment", "task1", "   "],
+        ],
+        ids=["neither", "both", "empty"],
+    )
+    def test_comment_requires_exactly_one_text_source(self, env_token, args):
+        """Exactly one non-empty text source is required, and nothing is posted otherwise."""
+        with respx.mock(
+            base_url="https://app.asana.com/api/1.0", assert_all_called=False
+        ) as respx_mock:
+            route = self._mock_post(respx_mock)
+
+            result = runner.invoke(app, args, input="")
+            assert result.exit_code == 1
+            assert "Error" in result.output
+            assert not route.called
+
+    def test_comment_task_not_found(self, env_token):
+        """Commenting on a missing task reports not found."""
+        with respx.mock(base_url="https://app.asana.com/api/1.0") as respx_mock:
+            respx_mock.post("/tasks/invalid/stories").mock(
+                return_value=Response(404, json=responses.ERROR_NOT_FOUND)
+            )
+
+            result = runner.invoke(app, ["tasks", "comment", "invalid", "hi"])
+            assert result.exit_code == 1
+            assert "not found" in result.output
+
+    def test_comments_table(self, env_token):
+        """Listing comments shows only comment stories, with author and text."""
+        with respx.mock(base_url="https://app.asana.com/api/1.0") as respx_mock:
+            respx_mock.get("/tasks/task1/stories").mock(
+                return_value=Response(200, json=responses.STORIES)
+            )
+
+            result = runner.invoke(app, ["tasks", "comments", "task1"])
+            assert result.exit_code == 0
+            assert "First comment" in result.output
+            assert "Second comment" in result.output
+            assert "Other User" in result.output
+            assert "2024-06-01" in result.output
+            assert "assigned to you" not in result.output
+
+    def test_comments_json(self, env_token):
+        """-o json prints only comment stories."""
+        with respx.mock(base_url="https://app.asana.com/api/1.0") as respx_mock:
+            respx_mock.get("/tasks/task1/stories").mock(
+                return_value=Response(200, json=responses.STORIES)
+            )
+
+            result = runner.invoke(app, ["tasks", "comments", "task1", "-o", "json"])
+            assert result.exit_code == 0
+            data = json.loads(result.output)
+            assert [s["gid"] for s in data] == ["story1", "story3"]
+            assert data[1]["created_by"]["name"] == "Other User"
+
+    def test_comments_task_not_found(self, env_token):
+        """Listing comments on a missing task reports not found."""
+        with respx.mock(base_url="https://app.asana.com/api/1.0") as respx_mock:
+            respx_mock.get("/tasks/invalid/stories").mock(
+                return_value=Response(404, json=responses.ERROR_NOT_FOUND)
+            )
+
+            result = runner.invoke(app, ["tasks", "comments", "invalid"])
+            assert result.exit_code == 1
+            assert "not found" in result.output
+
+
 class TestSectionCommands:
     """Tests for section commands."""
 

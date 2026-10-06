@@ -150,6 +150,43 @@ TASK_UPDATED = {
     }
 }
 
+STORY_CREATED = {
+    "data": {
+        "gid": "story1",
+        "resource_subtype": "comment_added",
+        "text": "A new comment",
+        "created_at": "2024-06-01T12:00:00.000Z",
+        "created_by": {"gid": "12345", "name": "Test User"},
+    }
+}
+
+STORIES = {
+    "data": [
+        {
+            "gid": "story1",
+            "resource_subtype": "comment_added",
+            "text": "First comment",
+            "created_at": "2024-06-01T12:00:00.000Z",
+            "created_by": {"gid": "12345", "name": "Test User"},
+        },
+        {
+            "gid": "story2",
+            "resource_subtype": "assigned",
+            "text": "Test User assigned to you",
+            "created_at": "2024-06-02T12:00:00.000Z",
+            "created_by": {"gid": "12345", "name": "Test User"},
+        },
+        {
+            "gid": "story3",
+            "resource_subtype": "comment_added",
+            "text": "Second comment",
+            "created_at": "2024-06-03T12:00:00.000Z",
+            "created_by": {"gid": "67890", "name": "Other User"},
+        },
+    ],
+    "next_page": None,
+}
+
 ERROR_NOT_FOUND = {"errors": [{"message": "Resource not found", "help": "Check the GID"}]}
 
 ERROR_UNAUTHORIZED = {"errors": [{"message": "Not authorized", "help": "Check your token"}]}
